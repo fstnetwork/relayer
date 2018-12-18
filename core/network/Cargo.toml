@@ -1,0 +1,13 @@
+[package]
+name = "network"
+version = "0.1.0"
+authors = ["fstnetwork <admin@fstk.io>"]
+
+[dependencies]
+traits = { path = "../traits" }
+types = { path = "../types" }
+
+error-chain = "0.12.0"
+futures = "0.1.25"
+tokio-timer = "0.2.8"
+log = "0.4.6"

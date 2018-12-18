@@ -1,0 +1,27 @@
+[package]
+name = "machine"
+version = "0.1.0"
+authors = ["fstnetwork <admin@fstk.io>"]
+
+[dependencies]
+ethereum = { path = "../ethereum" }
+pricer = {path = "../pricer"}
+pool = { path = "../pool" }
+collation = { path = "../collation" }
+traits = { path = "../traits" }
+types = { path = "../types" }
+
+ethkey = { git = "https://github.com/paritytech/parity-ethereum.git" }
+ethcore-transaction = { git = "https://github.com/paritytech/parity-ethereum.git" }
+
+error-chain = "0.12.0"
+ethereum-types = "0.4.0"
+futures = "0.1.25"
+keccak-hash = "0.1.2"
+log = "0.4.6"
+parking_lot = "0.7.0"
+serde = "1.0.82"
+serde_derive = "1.0.82"
+tokio = "0.1.13"
+tokio-timer = "0.2.8"
+

@@ -1,0 +1,72 @@
+// Copyright 2017-2018 FST Network Pte. Ltd.
+// This file is part of FST Relayer.
+
+// FST Relayer is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// FST Relayer is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
+use ethabi::{Contract, Event, Function, Param, ParamType};
+
+use std::collections::HashMap;
+
+lazy_static! {
+    pub static ref FST_TOKEN_TRANSFER_REQUEST_DISPATCHER_INTERFACE: Contract = {
+        let mut functions: HashMap<String, Function> = HashMap::new();
+        let events: HashMap<String, Event> = HashMap::new();
+
+        // function singleTokenDispatch(address token, bytes[] payloads) public
+        functions.insert(
+            "singleTokenDispatch".into(),
+            Function {
+                name: "singleTokenDispatch".into(),
+                constant: false,
+                inputs: vec![
+                    Param {
+                        name: "token".to_owned(),
+                        kind: ParamType::Address,
+                    },
+                    Param {
+                        name: "payloads".to_owned(),
+                        kind: ParamType::Array(Box::new(ParamType::Bytes)),
+                    },
+                ],
+                outputs: vec![],
+            },
+        );
+
+        // function multipleTokenDispatch(address[] tokens, bytes[] data) public {}
+        functions.insert(
+            "multipleTokenDispatch".into(),
+            Function {
+                name: "multipleTokenDispatch".into(),
+                constant: false,
+                inputs: vec![
+                    Param {
+                        name: "tokens".to_owned(),
+                        kind: ParamType::Array(Box::new(ParamType::Address)),
+                    },
+                    Param {
+                        name: "payloads".to_owned(),
+                        kind: ParamType::Array(Box::new(ParamType::Bytes)),
+                    },
+                ],
+                outputs: vec![],
+            },
+        );
+
+        Contract {
+            constructor: None,
+            fallback: false,
+            events,
+            functions,
+        }
+    };
+}

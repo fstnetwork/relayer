@@ -1,0 +1,7 @@
+[target.x86_64-pc-windows-msvc]
+# Link the C runtime statically
+rustflags = ["-Ctarget-feature=+crt-static"]
+
+[target.x86_64-alpine-linux-musl]
+# Link the C runtime statically
+rustflags = ["-Ctarget-feature=+crt-static"]

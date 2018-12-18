@@ -1,0 +1,62 @@
+[package]
+name = "fst-relayer"
+version = "0.1.0"
+authors = ["fstnetwork <admin@fstk.io>"]
+
+[workspace]
+members = [
+    "core/collation",
+    "core/contract_abi",
+    "core/ethereum",
+    "core/network",
+    "core/machine",
+    "core/pool",
+    "core/pricer",
+    "core/types",
+    "core/traits",
+]
+
+[[bin]]
+name = "fst-relayer"
+path = "relayer/src/main.rs"
+
+[dependencies]
+traits = { path = "./core/traits" }
+types = { path = "./core/types" }
+ethereum = { path = "./core/ethereum" }
+collation = { path = "./core/collation" }
+machine = { path = "./core/machine" }
+network = { path = "./core/network" }
+pool = { path = "./core/pool" }
+pricer = { path = "./core/pricer" }
+
+ethkey = { git = "https://github.com/paritytech/parity-ethereum" }
+ethstore = { git = "https://github.com/paritytech/parity-ethereum" }
+
+bytes = "0.4.11"
+clap = "2.32.0"
+dirs = "1.0.4"
+env_logger = "0.6.0"
+error-chain = "0.12.0"
+ethereum-types = "0.4.0"
+futures = "0.1.25"
+log = "0.4.6"
+parking_lot = "0.7.0"
+rustc-hex = "1.0"
+serde = "1.0.82"
+serde_derive = "1.0.82"
+serde_json = "1.0.33"
+tokio = "0.1.13"
+tokio-signal = "0.2.7"
+tokio-timer = "0.2.8"
+toml = "0.4.10"
+
+jsonrpc-core = "9.0.0"
+jsonrpc-macros = "9.0.0"
+jsonrpc-pubsub = "9.0.0"
+jsonrpc-http-server = "9.0.0"
+jsonrpc-ipc-server = "9.0.0"
+# jsonrpc-ws-server = "9.0.0"
+
+# jsonrpc-ws-server = { git = "https://github.com/paritytech/jsonrpc.git" }
+
