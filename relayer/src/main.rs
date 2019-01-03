@@ -53,6 +53,7 @@ extern crate jsonrpc_pubsub;
 
 extern crate collation;
 extern crate ethereum;
+extern crate fdlimit;
 extern crate machine;
 extern crate network;
 extern crate pool;
@@ -88,6 +89,7 @@ fn main() {
                             None => PathBuf::from("config.toml"),
                         });
 
+                fdlimit::raise_fd_limit();
                 Command::Service {
                     config_file_path: config_file_path.to_owned(),
                     daemonize: false,

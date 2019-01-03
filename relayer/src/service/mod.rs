@@ -164,7 +164,8 @@ impl Service {
                 params.allow_tokens
             );
 
-            let mut token_filter = params.allow_tokens.into_iter().fold(
+            let allow_tokens = params.allow_tokens.clone();
+            let mut token_filter = allow_tokens.clone().into_iter().fold(
                 ListAddressFilter::new(ListAddressFilterMode::Whitelist),
                 |mut token_filter, token_address| {
                     token_filter.add_token(token_address);
@@ -174,7 +175,16 @@ impl Service {
 
             let request_verifier =
                 Arc::new(Mutex::new(RequestVerifier::new(ethereum_service.clone())));
-            let request_selector = Arc::new(TokenSelector::new());
+            let request_selector = Arc::new({
+                use std::collections::HashMap;
+                TokenSelector::with_priorities(allow_tokens.into_iter().enumerate().fold(
+                    HashMap::new(),
+                    |mut m, (i, token_address)| {
+                        m.insert(token_address, i as u32);
+                        m
+                    },
+                ))
+            });
             let interval = Duration::from_secs(1);
             Arc::new(Mutex::new(PoolService::new(
                 PoolParams {

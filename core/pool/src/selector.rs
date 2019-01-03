@@ -201,11 +201,7 @@ where
 
     fn choose(&self, old: &R, new: &R) -> Choice {
         if old.token() != new.token() {
-            let (old, new) = self.priority_pair(old, new);
-            return match new.cmp(&old) {
-                cmp::Ordering::Greater => Choice::InsertNew,
-                _ => Choice::RejectNew,
-            };
+            return Choice::InsertNew;
         }
 
         self.base_selector.choose(old, new)

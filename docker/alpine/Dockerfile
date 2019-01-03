@@ -22,7 +22,8 @@ ENV RUST_BACKTRACE 1
 COPY --chown=root:root --from=builder /build/target/x86_64-alpine-linux-musl/release/fst-relayer /usr/bin/fst-relayer
 RUN chmod a+x /usr/bin/fst-relayer
 
-RUN useradd -ms /bin/bash relayer
+RUN addgroup -g 1000 relayer \
+    && adduser -u 1000 -G relayer -s /bin/sh -D relayer
 
 USER relayer
 
