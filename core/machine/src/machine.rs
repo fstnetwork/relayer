@@ -405,6 +405,21 @@ where
         self.dispatcher = dispatcher;
     }
 
+    #[inline]
+    pub fn set_dispatcher_address(&mut self, dispatcher_address: Address) {
+        self.dispatcher.set_address(dispatcher_address);
+    }
+
+    #[inline]
+    pub fn set_confirmation_count(&mut self, confirmation_count: u32) {
+        self.confirmation_count = confirmation_count;
+    }
+
+    #[inline]
+    pub fn set_chain_id(&mut self, chain_id: Option<u64>) {
+        self.chain_id = chain_id;
+    }
+
     fn select_event(events: &Vec<RelayerEvent>, default_event: RelayerEvent) -> RelayerEvent {
         if events.is_empty() || events.iter().all(|event| *event == RelayerEvent::Null) {
             return RelayerEvent::Null;

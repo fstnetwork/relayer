@@ -15,8 +15,9 @@
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use ethereum_types::{Address, U256};
 use futures::{Future, Stream};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
+use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PoolRequestTag {
@@ -37,6 +38,7 @@ pub trait PoolService: Sync + Send + Stream {
     type Address;
     type Hash;
     type Filter: Clone;
+    type PoolParams;
     type PoolStatus;
     type PoolError: ::std::error::Error + Send + ToString + 'static;
 
@@ -96,7 +98,11 @@ pub trait PoolService: Sync + Send + Stream {
 
     fn status(&self) -> HashMap<Self::Address, Self::PoolStatus>;
 
-    fn set_relayers(&mut self, relayers: Vec<Address>);
+    fn set_interval(&mut self, interval: Duration);
+
+    fn set_params(&mut self, params: Self::PoolParams);
+
+    fn set_relayers(&mut self, relayers: HashSet<Address>);
 
     fn set_dispatcher(&mut self, dispatcher: Address);
 }

@@ -26,6 +26,7 @@ use collation::{RequestConverter, RequestDispatcher};
 use ethereum::monitor::Error as EthereumMonitorError;
 use ethereum::service::Error as EthereumServiceError;
 use pricer::Error as PriceServiceError;
+use std::collections::HashSet;
 use traits::{EthereumMonitor, EthereumService, PoolRequestTag, PoolService, PriceService};
 use types::SignedRequest;
 
@@ -74,6 +75,8 @@ where
     gas_pricer: Arc<Mutex<G>>,
 
     relayer_machines: Mutex<Vec<RelayerMachine<E, M, P, G, C>>>,
+    retired_relayer_machines: Mutex<HashSet<Address>>,
+
     ticker: Interval,
 }
 
@@ -120,7 +123,7 @@ where
                         gas_pricer.clone(),
                     );
                     info!(target: "relayer",
-                          "relayer machine {:?} created", keypair.address());
+                          "Relayer service: relayer machine {:?} created", keypair.address());
                     machine
                 })
                 .collect(),
@@ -139,7 +142,7 @@ where
         }
 
         trace!(target: "relayer",
-            "{:?} relayer machine created!",
+            "Relayer service: {:?} relayer machine created!",
             relayer_machines.lock().len()
         );
 
@@ -149,9 +152,20 @@ where
             ethereum_monitor,
             pool,
             gas_pricer,
+
             relayer_machines,
+            retired_relayer_machines: Mutex::new(HashSet::new()),
+
             ticker: Interval::new_interval(params.interval),
         }
+    }
+
+    fn relayer_status(&self, relayer_address: &Address) -> Option<RelayerState> {
+        self.relayer_machines
+            .lock()
+            .iter()
+            .find(|machine| machine.address().eq(relayer_address))
+            .map(RelayerMachine::state)
     }
 
     fn poll_ticker(&mut self) -> Poll<Option<()>, Error> {
@@ -200,7 +214,8 @@ where
             match relayer.poll() {
                 Ok(Async::Ready(Some(RelayerState::Ready))) => {
                     let requests = self.pool.lock().remove_by_tag(PoolRequestTag::Executed);
-                    info!(target: "relayer", "{} executed request(s) removed from pool by relayer {}",
+                    info!(target: "relayer",
+                        "Relayer service: {} executed request(s) removed from pool by relayer {}",
                         requests.len(), relayer.address());
                 }
                 Ok(Async::Ready(Some(RelayerState::Preparing))) => {}
@@ -221,6 +236,24 @@ where
         }
 
         Ok(Async::NotReady)
+    }
+
+    fn remove_retired_relayers(&mut self) {
+        let mut retired = self.retired_relayer_machines.lock();
+        let mut machines = self.relayer_machines.lock();
+
+        let to_remove: HashSet<_> = retired
+            .iter()
+            .cloned()
+            .filter(|relayer_address| {
+                self.relayer_status(relayer_address) == Some(RelayerState::Ready)
+            })
+            .collect();
+
+        info!(target: "relayer", "Relayer service: Remove retired relayer machine(s): {:?}", to_remove);
+        machines.retain(|machine| !to_remove.contains(&machine.address()));
+
+        retired.retain(|relayer_address| !to_remove.contains(relayer_address));
     }
 }
 
@@ -249,7 +282,7 @@ where
             return true;
         }
         self.running = true;
-        info!(target: "relayer", "Start relayer service");
+        info!(target: "relayer", "Relayer service: Start relayer service");
         self.is_working()
     }
 
@@ -258,17 +291,38 @@ where
             return self.is_working();
         }
         self.running = false;
-        info!(target: "relayer", "Stop relayer service");
+        info!(target: "relayer", "Relayer service: Stop relayer service");
         self.is_working()
+    }
+
+    fn set_dispatcher_address(&mut self, address: Address) {
+        self.relayer_machines
+            .lock()
+            .iter_mut()
+            .for_each(|machine| machine.set_dispatcher_address(address.clone()));
+    }
+
+    fn set_chain_id(&mut self, chain_id: Option<u64>) {
+        self.relayer_machines
+            .lock()
+            .iter_mut()
+            .for_each(|machine| machine.set_chain_id(chain_id));
+    }
+
+    fn set_confirmation_count(&mut self, confirmation_count: u32) {
+        self.relayer_machines
+            .lock()
+            .iter_mut()
+            .for_each(|machine| machine.set_confirmation_count(confirmation_count));
     }
 
     fn set_interval(&mut self, interval: Duration) -> Result<Duration, Self::MachineError> {
         if interval == Duration::from_secs(0) {
-            warn!(target: "relayer", "Invalid interval value: {:?}", interval);
+            warn!(target: "relayer", "Relayer service: Invalid interval value: {:?}", interval);
             return Err(Error::from(ErrorKind::InvalidIntervalValue(interval)));
         }
 
-        info!(target: "relayer", "Set interval to {:?}", interval);
+        info!(target: "relayer", "Relayer service: Set interval to {:?}", interval);
         self.ticker = Interval::new_interval(interval);
         Ok(interval)
     }
@@ -285,7 +339,7 @@ where
         {
             Some(relayer) => {
                 info!(target: "relayer",
-                    "Force relay single token transfer request {:?} with relayer {:?}",
+                    "Relayer service: Force relay single token transfer request {:?} with relayer {:?}",
                     signed_request.hash(),
                     relayer.address()
                 );
@@ -294,7 +348,7 @@ where
             }
             None => {
                 info!(target: "relayer",
-                    "No available relayer, import token transfer request {:?} into pool",
+                    "Relayer service: No available relayer, import token transfer request {:?} into pool",
                     signed_request.hash()
                 );
 
@@ -347,17 +401,31 @@ where
     }
 
     fn remove_relayer(&mut self, address: &Address) -> Result<(), Self::MachineError> {
-        if self.contains_relayer(address) {
-            let relayers = {
-                let mut machines = self.relayer_machines.lock();
-                machines.retain(|machine| !machine.address().eq(address));
-                machines.iter().map(RelayerMachine::address).collect()
-            };
-            self.pool.lock().set_relayers(relayers);
+        match self.relayer_status(address) {
+            None => return Ok(()),
+            Some(RelayerState::Ready) => {
+                info!(target: "relayer", "Relayer service: Remove relayer machine: {:?}", address);
+                let relayers = {
+                    let mut machines = self.relayer_machines.lock();
+                    machines.retain(|machine| !machine.address().eq(address));
+                    machines.iter().map(RelayerMachine::address).collect()
+                };
+                self.pool.lock().set_relayers(relayers);
+            }
+            Some(state) => {
+                info!(target: "relayer",
+                    "Relayer service: Mark relayer machine: {:?} as retired, current state: {}",
+                    address, state.to_string());
+                self.retired_relayer_machines.lock().insert(address.clone());
+
+                let mut relayers = self.relayers();
+                relayers.remove(&address);
+                self.pool.lock().set_relayers(relayers);
+            }
         }
 
         if self.relayer_count() == 0 {
-            warn!(target: "relayer", "All relayer is removed, we can not relay any token transfer request");
+            warn!(target: "relayer", "Relayer service: All relayer is removed, we can not relay any token transfer request");
         }
 
         Ok(())
@@ -412,7 +480,7 @@ where
     }
 
     #[inline]
-    fn relayers(&self) -> Vec<Address> {
+    fn relayers(&self) -> HashSet<Address> {
         self.relayer_machines
             .lock()
             .iter()
@@ -455,6 +523,8 @@ where
             if let Err(err) = self.poll_relayer() {
                 return Err(err);
             }
+
+            self.remove_retired_relayers();
 
             if !self.running {
                 return Ok(Async::NotReady);

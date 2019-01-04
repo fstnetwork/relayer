@@ -72,6 +72,7 @@ impl ::std::fmt::Display for ApiSet {
 }
 
 impl ApiSet {
+    #[allow(dead_code)]
     pub fn new_all() -> ApiSet {
         ApiSet::All
     }
@@ -80,6 +81,7 @@ impl ApiSet {
         ApiSet::List(HashSet::new())
     }
 
+    #[allow(dead_code)]
     pub fn with_apis(apis: HashSet<Api>) -> ApiSet {
         ApiSet::List(apis)
     }

@@ -103,7 +103,7 @@ impl Service {
                 let ServiceParams {
                     ipc_config,
                     http_config,
-                    websocket_config,
+                    websocket_config: _,
                 } = params;
 
                 let ipc_server = ipc_config.and_then(|ipc_config| {

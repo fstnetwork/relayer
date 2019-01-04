@@ -50,10 +50,9 @@ mod tests;
 
 pub use self::error::{Error, ErrorKind};
 use self::event::RelayerEvent;
-use self::machine::{RelayerInfo, RelayerMachine, RelayerParams, RelayerState};
-// use self::transaction_queue::TransactionQueue;
+use self::machine::{RelayerInfo, RelayerMachine, RelayerState};
 
-pub use self::machine::RelayerMode;
+pub use self::machine::{RelayerMode, RelayerParams};
 pub use self::service::{
     Params as MachineServiceParams, Service as MachineService, Status as MachineStatus,
 };

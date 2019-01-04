@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::runtime::Runtime;
 
-use super::config::Configuration;
+use super::config::{self, Configuration};
 use super::service::Service;
 use super::Server;
 
@@ -65,9 +65,12 @@ impl Command {
             .filter(Some("ethereum_monitor"), log_level)
             .init();
 
-        let config = match load_config(&config_file_path) {
+        let config = match config::load_config(&config_file_path) {
             Ok(config) => config,
-            Err(_) => return -1,
+            Err(err) => {
+                println!("{:?}", err);
+                return -1;
+            }
         };
 
         let mut runtime = match Runtime::new() {
@@ -78,7 +81,7 @@ impl Command {
             }
         };
 
-        let service = match Service::new(config) {
+        let service = match Service::new(config_file_path, config) {
             Ok(service) => Arc::new(Mutex::new(service)),
             Err(err) => {
                 error!(target: "system", "Failed to initial service error: {}", err);
@@ -107,35 +110,4 @@ impl Command {
         );
         0
     }
-}
-
-fn load_config(file_path: &PathBuf) -> Result<Configuration, ()> {
-    use std::fs::File;
-    let mut file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(err) => {
-            println!(
-                "Failed to open configuration file: {:?}, error: {}",
-                file_path, err
-            );
-            return Err(());
-        }
-    };
-
-    use std::io::Read;
-    let mut file_content = String::new();
-    if let Err(err) = file.read_to_string(&mut file_content) {
-        println!(
-            "Failed to read content from file: {:?}, error: {}",
-            file_path, err
-        );
-        return Err(());
-    }
-
-    toml::from_str::<Configuration>(&file_content).map_err(|err| {
-        println!(
-            "Failed to deserialize configuration file: {:?}, error: {:?}",
-            file_path, err
-        );
-    })
 }

@@ -79,7 +79,7 @@ fn main() {
 
         match matches.subcommand() {
             ("generate-config", Some(_)) => Command::GenerateConfiguration,
-            ("service", Some(cmd)) => {
+            ("daemon", Some(cmd)) => {
                 use std::path::PathBuf;
                 let config_file_path =
                     cmd.value_of("config")

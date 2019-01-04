@@ -87,6 +87,10 @@ where
     type WatcherId = WatcherId;
     type MonitorError = Error;
 
+    fn set_interval(&mut self, interval: Duration) {
+        self.ticker_interval = interval;
+    }
+
     fn register(&mut self) -> (WatcherId, mpsc::UnboundedReceiver<EthereumMonitorResponse>) {
         let (sender, receiver) = mpsc::unbounded();
 

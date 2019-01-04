@@ -59,6 +59,18 @@ impl ListAddressFilter {
         }
     }
 
+    pub fn with_list(mode: ListAddressFilterMode, allow_tokens: Vec<Address>) -> ListAddressFilter {
+        ListAddressFilter {
+            mode,
+            list: allow_tokens
+                .into_iter()
+                .fold(HashSet::default(), |mut m, token| {
+                    m.insert(token);
+                    m
+                }),
+        }
+    }
+
     pub fn add_token(&mut self, token: Address) {
         self.list.insert(token);
     }

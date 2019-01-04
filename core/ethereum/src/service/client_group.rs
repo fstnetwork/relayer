@@ -59,6 +59,20 @@ impl ClientGroup {
         self.clients.contains_key(endpoint)
     }
 
+    pub fn set_endpoints(&mut self, endpoints: Vec<String>) {
+        for endpoint in endpoints.iter() {
+            if !self.contains(endpoint) {
+                self.add(endpoint.clone());
+            }
+        }
+
+        for endpoint in self.endpoints().iter() {
+            if !endpoints.contains(endpoint) {
+                self.remove(endpoint);
+            }
+        }
+    }
+
     pub fn endpoints(&self) -> Vec<String> {
         self.clients.keys().cloned().collect()
     }

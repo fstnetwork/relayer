@@ -13,6 +13,7 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
+
 use ethereum_types::{Address, U256};
 use std::collections::HashMap;
 use std::fs::File;
@@ -436,6 +437,35 @@ fn resolve_path(path_str: &String) -> Option<std::path::PathBuf> {
         path_buf.push(component);
         path_buf
     }))
+}
+
+pub fn load_config(file_path: &PathBuf) -> Result<Configuration, Error> {
+    use std::fs::File;
+    let mut file = match File::open(file_path) {
+        Ok(file) => file,
+        Err(err) => {
+            return Err(Error::from(ErrorKind::OpenConfigurationFileFailed(
+                file_path.clone(),
+                err,
+            )));
+        }
+    };
+
+    use std::io::Read;
+    let mut file_content = String::new();
+    if let Err(err) = file.read_to_string(&mut file_content) {
+        return Err(Error::from(ErrorKind::ReadConfigurationContentFailed(
+            file_path.clone(),
+            err,
+        )));
+    }
+
+    toml::from_str::<Configuration>(&file_content).map_err(|err| {
+        Error::from(ErrorKind::DeserializeConfigurationFailed(
+            file_path.clone(),
+            err,
+        ))
+    })
 }
 
 #[cfg(test)]

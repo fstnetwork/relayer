@@ -15,6 +15,7 @@
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use futures::{sync::mpsc, Async, Future, Poll, Stream};
 use parking_lot::Mutex;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
@@ -22,13 +23,13 @@ use tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 use collation::FstRequestConverter;
 use ethereum::monitor::{Params as EthereumMonitorParams, Service as EthereumMonitor};
 use ethereum::service::{Params as EthereumServiceParams, Service as EthereumService};
-use machine::{MachineService, MachineServiceParams, RelayerMode};
+use machine::{MachineService, MachineServiceParams, RelayerMode, RelayerParams};
 use network::{NetworkParams, NetworkService};
 use pool::{
     ListAddressFilter, ListAddressFilterMode, PoolParams, PoolService, RequestVerifier,
     TokenSelector, VerifiedRequest,
 };
-use pricer::{Error as PriceServiceError, PriceService, PriceServiceMode};
+use pricer::{PriceService, PriceServiceMode};
 
 use super::rpc_apis;
 
@@ -100,10 +101,13 @@ pub struct Service {
     jsonrpc_service: Box<JsonRpcService>,
     exit_handle: Arc<Mutex<ExitHandle>>,
     exit_handler: Box<Future<Item = ExitReason, Error = ()> + Send>,
+
+    config_file_path: PathBuf,
+    reload_config_signal: Box<Future<Item = (), Error = ()> + Send>,
 }
 
 impl Service {
-    pub fn new(config: Configuration) -> Result<Service, Error> {
+    pub fn new(config_file_path: PathBuf, config: Configuration) -> Result<Service, Error> {
         let (exit_handler, exit_handle) = {
             let (sender, mut receiver) = mpsc::unbounded::<()>();
             let register_signal = |unix_signal: i32| {
@@ -118,7 +122,6 @@ impl Service {
             let exit_signals: Vec<Box<Future<Item = ExitReason, Error = ()> + Send>> = vec![
                 register_signal(SIGTERM),
                 register_signal(SIGINT),
-                register_signal(SIGHUP),
                 Box::new(receiver.into_future().then(|_| Ok(ExitReason::Internal))),
             ];
 
@@ -131,6 +134,13 @@ impl Service {
                 Arc::new(Mutex::new(ExitHandle { sender })),
             )
         };
+
+        let reload_config_signal = Box::new(
+            Signal::new(SIGHUP)
+                .flatten_stream()
+                .into_future()
+                .then(move |_| Ok(())),
+        );
 
         let ethereum_service = {
             let params = config.ethereum_params();
@@ -165,12 +175,9 @@ impl Service {
             );
 
             let allow_tokens = params.allow_tokens.clone();
-            let mut token_filter = allow_tokens.clone().into_iter().fold(
-                ListAddressFilter::new(ListAddressFilterMode::Whitelist),
-                |mut token_filter, token_address| {
-                    token_filter.add_token(token_address);
-                    token_filter
-                },
+            let token_filter = ListAddressFilter::with_list(
+                ListAddressFilterMode::Whitelist,
+                allow_tokens.clone(),
             );
 
             let request_verifier =
@@ -291,7 +298,125 @@ impl Service {
 
             exit_handler,
             exit_handle,
+
+            config_file_path,
+            reload_config_signal,
         })
+    }
+
+    pub fn reload_config(&mut self) -> Result<(), Error> {
+        info!(target: "system",
+            "Reload load configuration file: {:?}",
+            self.config_file_path,
+        );
+
+        // reload configuration file
+        let config = match config::load_config(&self.config_file_path) {
+            Ok(config) => config,
+            Err(err) => {
+                return Err(Error::from(err));
+            }
+        };
+
+        // update Relayer Machine Service configurations
+        {
+            let params = config.machine_params()?;
+            use traits::MachineService;
+            let mut machine_service = self.machine_service.lock();
+
+            {
+                let new_relayer_keypairs = params.relayer_keypairs;
+
+                {
+                    use std::collections::HashSet;
+                    let old_relayers = machine_service.relayers();
+                    let to_remove: HashSet<_> = {
+                        use ethkey::KeyPair;
+                        let new_relayers: HashSet<_> =
+                            new_relayer_keypairs.iter().map(KeyPair::address).collect();
+
+                        old_relayers
+                            .iter()
+                            .filter(|addr| !new_relayers.contains(addr))
+                            .collect()
+                    };
+
+                    for relayer in to_remove {
+                        match machine_service.remove_relayer(relayer) {
+                            Err(err) => {
+                                warn!(target: "system", "Failed to remove relayer {:?}, error: {:?}", relayer, err);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+
+                for keypair in new_relayer_keypairs {
+                    if !machine_service.contains_relayer(&keypair.address()) {
+                        match machine_service.add_relayer(
+                            RelayerMode::BroadcastTransaction,
+                            RelayerParams {
+                                keypair: keypair.clone(),
+                                dispatcher: params.dispatcher.clone(),
+                                chain_id: params.chain_id.clone(),
+                                adjust_block_gas_limit_fn: None,
+                                confirmation_count: params.confirmation_count,
+                            },
+                        ) {
+                            Err(err) => {
+                                warn!(target: "system", "Failed to add relayer {:?}, error: {:?}", keypair.address(), err);
+                            }
+                            _ => {}
+                        };
+                    }
+                }
+            }
+
+            machine_service
+                .set_interval(Duration::from_secs(config.machine.interval_secs))
+                .expect("interval value has been checked; qed");
+
+            machine_service.set_chain_id(params.chain_id);
+            machine_service.set_confirmation_count(params.confirmation_count);
+            machine_service.set_dispatcher_address(params.dispatcher.address().clone());
+        }
+
+        // update Pool Service configurations
+        {
+            let params = config.pool_params();
+            use traits::PoolService;
+            let mut pool_service = self.pool_service.lock();
+            pool_service.set_params(PoolParams {
+                max_count: params.max_count,
+                max_per_sender: params.max_per_sender,
+                max_mem_usage: params.max_mem_usage,
+            });
+
+            pool_service.set_filter(ListAddressFilter::with_list(
+                ListAddressFilterMode::Whitelist,
+                params.allow_tokens,
+            ));
+        }
+
+        // update Ethereum Service configurations
+        {
+            let params = config.ethereum_params();
+            use traits::EthereumService;
+            self.ethereum_service
+                .lock()
+                .set_endpoints(params.ethereum_nodes);
+        }
+
+        // update Ethereum Monitor Service configurations
+        {
+            let params = config.ethereum_monitor_params();
+            use traits::EthereumMonitor;
+            self.ethereum_monitor_service
+                .lock()
+                .set_interval(params.ticker_interval);
+        }
+
+        Ok(())
     }
 
     #[allow(unused)]
@@ -330,6 +455,16 @@ impl Stream for Service {
                     self.jsonrpc_service.shutdown();
                     return Ok(Async::Ready(Some(exit)));
                 }
+                _ => {}
+            }
+
+            match self.reload_config_signal.poll() {
+                Ok(Async::Ready(_)) => match self.reload_config() {
+                    Err(err) => {
+                        error!(target: "system", "Failed to reload configuration: {:?}", err);
+                    }
+                    _ => {}
+                },
                 _ => {}
             }
 

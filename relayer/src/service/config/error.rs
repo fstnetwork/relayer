@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use ethereum_types::Address;
+use std::path::PathBuf;
 
 error_chain! {
     foreign_links {
@@ -42,6 +43,21 @@ error_chain! {
         ResolveFilePathFailed(file_path: String) {
             description("Failed to resolve file path")
             display("Failed to resolve file path {}", file_path)
+        }
+
+        OpenConfigurationFileFailed(file_path: PathBuf, error: std::io::Error) {
+            description("Failed to open configuration file")
+            display("Failed to open configuration file: {:?}, error: {}", file_path, error)
+        }
+
+        ReadConfigurationContentFailed(file_path: PathBuf, error: std::io::Error) {
+            description("Failed to read configuration file content")
+            display("Failed to read content from file: {:?}, error: {}", file_path, error)
+        }
+
+        DeserializeConfigurationFailed(file_path: PathBuf, error: toml::de::Error) {
+            description("Failed to deserialize configuration file")
+            display("Failed to deserialize configuration file: {:?}, error: {:?}", file_path, error)
         }
     }
 }

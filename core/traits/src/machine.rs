@@ -13,8 +13,10 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
+
 use ethereum_types::Address;
 use futures::{Future, Stream};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -67,11 +69,20 @@ pub trait MachineService: Sync + Send + Stream {
         mode: Self::RelayerMode,
     ) -> Option<Self::RelayerMode>;
 
+    /// Set confirmation count for all relayers
+    fn set_confirmation_count(&mut self, confirmation_count: u32);
+
+    /// Set chain id for all relayers
+    fn set_chain_id(&mut self, chain_id: Option<u64>);
+
+    /// Set dispatcher address for all relayers
+    fn set_dispatcher_address(&mut self, address: Address);
+
     fn status(&self) -> Self::MachineStatus;
 
     fn relayer_count(&self) -> usize;
 
-    fn relayers(&self) -> Vec<Address>;
+    fn relayers(&self) -> HashSet<Address>;
 
     fn relayer_info(&self, relayer_address: &Address) -> Option<Self::RelayerInfo>;
 

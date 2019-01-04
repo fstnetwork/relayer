@@ -58,6 +58,12 @@ where
         }
     }
 
+    #[inline]
+    pub fn set_params(&mut self, params: PoolParams) {
+        self.params = params;
+    }
+
+    #[inline]
     pub fn contains_hash(&self, hash: &H256) -> bool {
         self.by_hash.contains_key(hash)
     }

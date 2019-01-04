@@ -50,6 +50,10 @@ impl traits::EthereumService for Service {
         self.client_group.remove(endpoint)
     }
 
+    fn set_endpoints(&mut self, endpoints: Vec<String>) {
+        self.client_group.set_endpoints(endpoints);
+    }
+
     fn contains_endpoint(&mut self, endpoint: &String) -> bool {
         self.client_group.contains(endpoint)
     }

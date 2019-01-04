@@ -17,6 +17,7 @@ use ethcore_transaction;
 
 use ethereum_types::{Address, H256, U256};
 use futures::{sync::mpsc, Future, Stream};
+use std::time::Duration;
 
 use types::{
     AccountState, BlockId, Currency, EthRpcTransaction, EthRpcTransactionReceipt,
@@ -86,6 +87,9 @@ pub trait EthereumService:
     /// Removes a Ethereum endpoint
     fn remove_endpoint(&mut self, endpoint: &String) -> bool;
 
+    /// Set a set of Ethereum endpoints
+    fn set_endpoints(&mut self, endpoints: Vec<String>);
+
     fn contains_endpoint(&mut self, endpoint: &String) -> bool;
 
     /// Returns current endpoints used by Ethereum Service
@@ -112,6 +116,8 @@ pub enum EthereumMonitorResponse {
 pub trait EthereumMonitor: Send + Sync + Stream {
     type MonitorError: ::std::error::Error + Send + 'static;
     type WatcherId: Send + Sync + Copy + Eq + PartialEq;
+
+    fn set_interval(&mut self, interval: Duration);
 
     fn register(
         &mut self,

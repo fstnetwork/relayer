@@ -16,7 +16,7 @@
 use ethereum_types::{Address, H256, U256};
 use futures::{Async, Future, Poll, Stream};
 use parking_lot::{Mutex, RwLock};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -59,7 +59,7 @@ where
     insertion_id: Arc<AtomicUsize>,
 
     /// relayer addresses
-    relayers: Vec<Address>,
+    relayers: HashSet<Address>,
 
     /// dispatcher contract address
     dispatcher: Address,
@@ -128,6 +128,7 @@ where
     type Address = Address;
     type Hash = H256;
     type Filter = F;
+    type PoolParams = PoolParams;
     type PoolStatus = Status;
     type PoolError = Error;
 
@@ -155,9 +156,7 @@ where
 
         let relayer_address = {
             match request.unverified().delegate_mode() {
-                DelegateMode::PublicMsgSender | DelegateMode::PublicTxOrigin => {
-                    self.relayers.get(0).cloned().unwrap_or(Address::zero())
-                }
+                DelegateMode::PublicMsgSender | DelegateMode::PublicTxOrigin => Address::zero(),
                 DelegateMode::PrivateMsgSender | DelegateMode::PrivateTxOrigin => {
                     let relayer_address = request.unverified().relayer_address().clone();
 
@@ -372,7 +371,17 @@ where
     }
 
     #[inline]
-    fn set_relayers(&mut self, relayers: Vec<Address>) {
+    fn set_interval(&mut self, interval: Duration) {
+        self.ticker = Interval::new_interval(interval);
+    }
+
+    #[inline]
+    fn set_params(&mut self, params: Self::PoolParams) {
+        self.inner.write().set_params(params);
+    }
+
+    #[inline]
+    fn set_relayers(&mut self, relayers: HashSet<Address>) {
         self.relayers = relayers;
     }
 

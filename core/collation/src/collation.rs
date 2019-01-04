@@ -82,6 +82,11 @@ where
         &self.address
     }
 
+    #[inline]
+    pub fn set_address(&mut self, address: Address) {
+        self.address = address;
+    }
+
     pub fn convert(&self, signed_requests: &Vec<SignedRequest>) -> Vec<u8> {
         self.request_converter.convert(signed_requests)
     }
