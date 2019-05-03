@@ -34,7 +34,7 @@ use crate::traits::{
 };
 use crate::types::{AccountState, BlockId, Currency, GasEstimation, SignedRequest};
 
-use super::{Error, ErrorKind, RelayerEvent};
+use super::{Error, RelayerEvent};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum RelayerMode {
@@ -475,10 +475,10 @@ where
                 Err(err) => return Err(err),
             }
         } else {
-            return Err(Error::from(ErrorKind::InvalidStateTransfer(
-                self.state.to_string(),
-                RelayerState::Preparing.to_string(),
-            )));
+            return Err(Error::InvalidStateTransfer {
+                current_state: self.state.to_string(),
+                expected_state: RelayerState::Preparing.to_string(),
+            });
         };
 
         assert_ne!(event, RelayerEvent::Null);
@@ -547,7 +547,7 @@ where
         );
         let unestimated_tx = match open_collation.unestimated() {
             Some(tx) => tx.clone(),
-            None => return Err(Error::from(ErrorKind::EmptyTokenTransferRequestTransaction)),
+            None => return Err(Error::EmptyTokenTransferRequestTransaction),
         };
 
         {
@@ -599,10 +599,10 @@ where
                     Err(err) => return Err(err),
                 }
             } else {
-                return Err(Error::from(ErrorKind::InvalidStateTransfer(
-                    self.state.to_string(),
-                    RelayerState::GasEstimating.to_string(),
-                )));
+                return Err(Error::InvalidStateTransfer {
+                    current_state: self.state.to_string(),
+                    expected_state: RelayerState::GasEstimating.to_string(),
+                });
             };
 
         let signed_tx = closed_collation.transaction().clone();
@@ -672,10 +672,10 @@ where
                 Err(err) => return Err(err),
             }
         } else {
-            return Err(Error::from(ErrorKind::InvalidStateTransfer(
-                self.state.to_string(),
-                RelayerState::TxBroadcasting.to_string(),
-            )));
+            return Err(Error::InvalidStateTransfer {
+                current_state: self.state.to_string(),
+                expected_state: RelayerState::TxBroadcasting.to_string(),
+            });
         };
 
         self.state_transfer(

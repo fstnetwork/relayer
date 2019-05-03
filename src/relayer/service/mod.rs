@@ -38,7 +38,7 @@ mod error;
 mod exit;
 
 pub use self::config::Configuration;
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;
 pub use self::exit::{ExitCode, ExitReason, ExitStatus};
 
 use super::jsonrpc::{

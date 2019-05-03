@@ -22,7 +22,7 @@ mod transaction_queue;
 #[cfg(test)]
 mod tests;
 
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;
 use self::event::RelayerEvent;
 use self::machine::{RelayerInfo, RelayerMachine, RelayerState};
 

@@ -16,7 +16,7 @@
 mod error;
 
 use ethereum_types::{Address, U256};
-use futures::{Async, Future, Poll, Stream};
+use futures::{Async, Future, Poll};
 use std::collections::HashMap;
 
 use crate::traits;
@@ -107,11 +107,11 @@ impl traits::PriceService for PriceService {
     }
 }
 
-impl Stream for PriceService {
+impl Future for PriceService {
     type Item = ();
     type Error = Error;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         loop {
             return Ok(Async::NotReady);
         }

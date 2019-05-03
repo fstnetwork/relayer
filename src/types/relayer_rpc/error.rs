@@ -15,16 +15,28 @@
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use ethereum_types::U256;
 
-error_chain! {
-    foreign_links {
-        EthkeyError(ethkey::Error);
-        RequestError(super::RequestError);
-    }
+use super::RequestError;
 
-    errors {
-        InvalidDelegateMode(mode: U256) {
-            description("Invalid delegate mode")
-            display("Invalid delegate mode {}", mode)
-        }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "EthKey error: {}", _0)]
+    EthkeyError(ethkey::Error),
+
+    #[fail(display = "Token Transfer Request error: {}", _0)]
+    RequestError(RequestError),
+
+    #[fail(display = "Invalid delegate mode {}", _0)]
+    InvalidDelegateMode(U256),
+}
+
+impl From<ethkey::Error> for Error {
+    fn from(error: ethkey::Error) -> Error {
+        Error::EthkeyError(error)
+    }
+}
+
+impl From<RequestError> for Error {
+    fn from(error: RequestError) -> Error {
+        Error::RequestError(error)
     }
 }

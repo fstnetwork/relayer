@@ -16,48 +16,85 @@
 use ethereum_types::Address;
 use std::path::PathBuf;
 
-error_chain! {
-    foreign_links {
-        Io(std::io::Error);
-        Json(serde_json::Error);
-        EthKey(ethkey::Error);
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "IO error: {}", _0)]
+    Io(std::io::Error),
+
+    #[fail(display = "JSON error: {}", _0)]
+    Json(serde_json::Error),
+
+    #[fail(display = "EthKey error: {}", _0)]
+    EthKey(ethkey::Error),
+
+    #[fail(display = "EthStore error: {}", _0)]
+    EthStore(ethstore::Error),
+
+    #[fail(display = "Invalid relay interval")]
+    InvalidRelayInterval,
+
+    #[fail(
+        display = "Failed to recover private key of {} from key file {} and password file {}, error: {}",
+        address, keyfile, password_file, error
+    )]
+    RecoverPrivateKeyFailed {
+        error: String,
+        address: Address,
+        keyfile: String,
+        password_file: String,
+    },
+
+    #[fail(display = "Failed to resolve file path {}", _0)]
+    ResolveFilePathFailed(String),
+
+    #[fail(
+        display = "Failed to open configuration file: {:?}, error: {}",
+        file_path, error
+    )]
+    OpenConfigurationFileFailed {
+        file_path: PathBuf,
+        error: std::io::Error,
+    },
+
+    #[fail(
+        display = "Failed to read content from file: {:?}, error: {}",
+        file_path, error
+    )]
+    ReadConfigurationContentFailed {
+        file_path: PathBuf,
+        error: std::io::Error,
+    },
+
+    #[fail(
+        display = "Failed to deserialize configuration file: {:?}, error: {:?}",
+        file_path, error
+    )]
+    DeserializeConfigurationFailed {
+        file_path: PathBuf,
+        error: toml::de::Error,
+    },
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Error {
+        Error::Io(error)
     }
+}
 
-    errors {
-        EthStore(error: ethstore::Error) {
-            description("EthStore error")
-            display("EthStore error: {:?}", error)
-        }
+impl From<ethstore::Error> for Error {
+    fn from(error: ethstore::Error) -> Error {
+        Error::EthStore(error)
+    }
+}
 
-        InvalidRelayInterval {
-            description("Invalid relay interval")
-            display("Invalid relay interval")
-        }
+impl From<ethkey::Error> for Error {
+    fn from(error: ethkey::Error) -> Error {
+        Error::EthKey(error)
+    }
+}
 
-        RecoverPrivateKeyFailed(error: String, address: Address, keyfile: String, password_file: String) {
-            description("Failed to recover private key from keyfile")
-            display("Failed to recover private key of {} from key file {} and password file {}, error: {}",
-                    address, keyfile, password_file, error)
-        }
-
-        ResolveFilePathFailed(file_path: String) {
-            description("Failed to resolve file path")
-            display("Failed to resolve file path {}", file_path)
-        }
-
-        OpenConfigurationFileFailed(file_path: PathBuf, error: std::io::Error) {
-            description("Failed to open configuration file")
-            display("Failed to open configuration file: {:?}, error: {}", file_path, error)
-        }
-
-        ReadConfigurationContentFailed(file_path: PathBuf, error: std::io::Error) {
-            description("Failed to read configuration file content")
-            display("Failed to read content from file: {:?}, error: {}", file_path, error)
-        }
-
-        DeserializeConfigurationFailed(file_path: PathBuf, error: toml::de::Error) {
-            description("Failed to deserialize configuration file")
-            display("Failed to deserialize configuration file: {:?}, error: {:?}", file_path, error)
-        }
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Error {
+        Error::Json(error)
     }
 }

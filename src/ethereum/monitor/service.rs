@@ -23,7 +23,7 @@ use crate::traits::{
     EthereumMonitor, EthereumMonitorResponse, EthereumMonitorTask, EthereumService,
 };
 
-use super::{Error, ErrorKind, TaskPoller, WatcherId};
+use super::{Error, TaskPoller, WatcherId};
 
 struct Watcher {
     tasks: HashSet<EthereumMonitorTask>,
@@ -134,7 +134,7 @@ where
 
     fn subscribe(&mut self, watcher_id: WatcherId, task: EthereumMonitorTask) -> Result<(), Error> {
         match self.watchers.get_mut(&watcher_id) {
-            None => return Err(Error::from(ErrorKind::InvalidWatcherId)),
+            None => return Err(Error::InvalidWatcherId),
             Some(watcher) => {
                 watcher.tasks.insert(task);
             }
@@ -151,7 +151,7 @@ where
     ) -> Result<(), Error> {
         let removed = match self.watchers.get_mut(&watcher_id) {
             Some(watcher) => watcher.tasks.remove(task),
-            None => return Err(Error::from(ErrorKind::InvalidWatcherId)),
+            None => return Err(Error::InvalidWatcherId),
         };
 
         if removed {

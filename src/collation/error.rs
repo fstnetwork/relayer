@@ -13,15 +13,15 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-use std::{error, fmt};
-
-use ethkey::Error as EthkeyError;
 
 use crate::types::RequestError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Fail)]
 pub enum RequestImportError {
+    #[fail(display = "Request error: {}", _0)]
     Request(RequestError),
+
+    #[fail(display = "Request other error: {}", _0)]
     Other(String),
 }
 
@@ -31,52 +31,35 @@ impl From<RequestError> for RequestImportError {
     }
 }
 
-impl From<Error> for RequestImportError {
-    fn from(e: Error) -> Self {
-        match e {
-            Error(ErrorKind::RequestError(request_error), _) => {
-                RequestImportError::Request(request_error)
-            }
-            _ => RequestImportError::Other(format!("other collaction import error: {:?}", e)),
-        }
-    }
-}
-
-error_chain! {
-    types {
-        Error, ErrorKind, ResultExt, Result;
-    }
-
-    foreign_links {
-        StdIo(::std::io::Error) #[doc = "Error concerning the Rust standard library's IO subsystem."];
-        Request(RequestError) #[doc = "Error concerning request processing."];
-        Ethkey(EthkeyError) #[doc = "Ethkey error."];
-    }
-
-    errors {
-        RequestError(err: RequestError) {
-            description("Request error.")
-            display("Request error {}", err)
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Fail)]
 pub enum CollationError {
+    #[fail(display = "IO error: {}", _0)]
+    Io(::std::io::Error),
+
+    #[fail(display = "EthKey error: {}", _0)]
+    Ethkey(ethkey::Error),
+
+    #[fail(display = "Token transfer request error: {}", _0)]
+    Request(RequestError),
+
+    #[fail(display = "Close collation with no transaction.")]
     CloseWithNoTransaction,
 }
 
-impl fmt::Display for CollationError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // use self::CollationError::*;
-
-        let msg = "";
-        f.write_fmt(format_args!("Collation error ({})", msg))
+impl From<std::io::Error> for CollationError {
+    fn from(error: std::io::Error) -> CollationError {
+        CollationError::Io(error)
     }
 }
 
-impl error::Error for CollationError {
-    fn description(&self) -> &str {
-        "Collation error"
+impl From<ethkey::Error> for CollationError {
+    fn from(error: ethkey::Error) -> CollationError {
+        CollationError::Ethkey(error)
+    }
+}
+
+impl From<RequestError> for CollationError {
+    fn from(error: RequestError) -> CollationError {
+        CollationError::Request(error)
     }
 }

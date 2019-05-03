@@ -16,7 +16,7 @@
 use ethabi::Token;
 use ethereum_types::U256;
 
-use super::error::{Error, ErrorKind};
+use super::error::Error;
 use super::ERC1376_TOKEN_INTERFACE;
 
 pub struct Erc1376AbiDecoder;
@@ -30,7 +30,7 @@ impl Erc1376AbiDecoder {
         let mut vec = function.decode_output(data)?;
         match vec.pop() {
             Some(Token::Bool(enable)) => Ok(enable),
-            _ => Err(Error::from(ErrorKind::InvalidReturnValue)),
+            _ => Err(Error::InvalidReturnValue),
         }
     }
 
@@ -42,7 +42,7 @@ impl Erc1376AbiDecoder {
         let mut vec = nonce_of_function.decode_output(data)?;
         match vec.pop() {
             Some(Token::Uint(nonce)) => Ok(nonce),
-            _ => Err(Error::from(ErrorKind::InvalidReturnValue)),
+            _ => Err(Error::InvalidReturnValue),
         }
     }
 }

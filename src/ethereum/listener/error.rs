@@ -1,14 +1,14 @@
-use std::time::Duration;
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "Timer error: {}", _0)]
+    Timer(tokio_timer::Error),
 
-error_chain! {
-    foreign_links {
-        TimerError(tokio::timer::Error);
-    }
+    #[fail(display = "Invalid interval value: {:?}", _0)]
+    InvalidInterval(std::time::Duration),
+}
 
-    errors {
-        InvalidInterval(interval: Duration) {
-            description("Invalid interval value")
-            display("Invalid interval value: {:?}", interval)
-        }
+impl From<tokio_timer::Error> for Error {
+    fn from(error: tokio_timer::Error) -> Error {
+        Error::Timer(error)
     }
 }

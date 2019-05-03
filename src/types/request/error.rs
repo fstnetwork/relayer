@@ -13,88 +13,76 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-use std::{error, fmt};
 
 use ethereum_types::U256;
-use ethkey;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone, Fail, PartialEq)]
 /// Errors concerning request processing.
 pub enum Error {
     /// Request is already imported to the queue
+    #[fail(display = "Already imported")]
     AlreadyImported,
+
     /// Request is not valid anymore (state already has higher nonce)
+    #[fail(display = "No longer valid")]
     Old,
+
     /// Request has too low fee
     /// (there is already a request with the same sender-nonce but higher gas price)
+    #[fail(display = "Gas price too low to replace")]
     TooCheapToReplace,
+
     /// Request was not imported to the queue because limit has been reached.
+    #[fail(display = "Request limit reached")]
     LimitReached,
+
     /// Request's gas price is below threshold.
+    #[fail(display = "Insufficient gas. Min={}, Given={}", minimal, got)]
     InsufficientFee {
         /// Minimal expected gas price
         minimal: U256,
         /// Got fee
         got: U256,
     },
+
     /// Sender doesn't have enough funds to pay for this request
+    #[fail(
+        display = "Insufficient balance for request. Balance={}, Cost={}",
+        balance, cost
+    )]
     InsufficientBalance {
         /// Senders balance
         balance: U256,
         /// Request cost
         cost: U256,
     },
+
     // /// Request's gas limit (aka gas) is invalid.
-    // // InvalidGasLimit(OutOfBounds<U256>),
+    // #[fail(display = "Request's gas limit is invalid: {}.", _0)]
+    // InvalidGasLimit(OutOfBounds<U256>),
     /// Request sender is banned.
+    #[fail(display = "Sender is temporarily banned.")]
     SenderBanned,
+
     /// Request receipient is banned.
+    #[fail(display = "Recipient is temporarily banned.")]
     RecipientBanned,
+
     /// Data code is banned.
+    #[fail(display = "Data is temporarily banned.")]
     DataBanned,
-    // /// Invalid chain ID given.
+
+    /// Invalid chain ID given.
+    #[fail(display = "Sender does not have permissions to execute this type of transction.")]
     NotAllowed,
+
     /// Signature error
+    #[fail(display = "Request has invalid signature: {}.", _0)]
     InvalidSignature(String),
 }
 
 impl From<ethkey::Error> for Error {
     fn from(err: ethkey::Error) -> Self {
         Error::InvalidSignature(format!("{}", err))
-    }
-}
-
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        "Token Transfer Request error"
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::Error::*;
-        let msg = match *self {
-            AlreadyImported => "Already imported".into(),
-            Old => "No longer valid".into(),
-            TooCheapToReplace => "Gas price too low to replace".into(),
-            LimitReached => "Request limit reached".into(),
-            InsufficientFee { minimal, got } => {
-                format!("Insufficient gas. Min={}, Given={}", minimal, got)
-            }
-            InsufficientBalance { balance, cost } => format!(
-                "Insufficient balance for request. Balance={}, Cost={}",
-                balance, cost
-            ),
-            SenderBanned => "Sender is temporarily banned.".into(),
-            RecipientBanned => "Recipient is temporarily banned.".into(),
-            DataBanned => "Data is temporarily banned.".into(),
-            // InvalidChainId => "Request of this chain ID is not allowed on this chain.".into(),
-            InvalidSignature(ref err) => format!("Request has invalid signature: {}.", err),
-            NotAllowed => {
-                "Sender does not have permissions to execute this type of transction".into()
-            }
-        };
-
-        f.write_fmt(format_args!("Request error ({})", msg))
     }
 }

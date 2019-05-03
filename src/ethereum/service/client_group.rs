@@ -16,7 +16,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use super::error::{Error, ErrorKind};
+use super::error::Error;
 use super::ethereum_client::EthereumClient;
 
 pub struct ClientGroup {
@@ -37,7 +37,7 @@ impl ClientGroup {
 
     pub fn pick(&self) -> Result<Arc<EthereumClient>, Error> {
         if self.clients.is_empty() {
-            return Err(Error::from(ErrorKind::EthereumClientGroupEmpty));
+            return Err(Error::EthereumClientGroupEmpty);
         }
 
         // TODO better implementation

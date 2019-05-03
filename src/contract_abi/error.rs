@@ -13,15 +13,19 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-error_chain!{
-    foreign_links {
-        EthAbi(ethabi::Error);
-    }
 
-    errors {
-        InvalidReturnValue {
-            description("Invalid return value")
-            display("Invalid return value")
-        }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "EthAbi error: {}", _0)]
+    // FIXME: use ethabi::Error
+    EthAbi(String),
+
+    #[fail(display = "Invalid return value")]
+    InvalidReturnValue,
+}
+
+impl From<ethabi::Error> for Error {
+    fn from(error: ethabi::Error) -> Error {
+        Error::EthAbi(error.to_string())
     }
 }

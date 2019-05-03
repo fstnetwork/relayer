@@ -21,7 +21,7 @@ mod service;
 
 pub type WatcherId = usize;
 
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;
 pub use self::service::{Params, Service};
 
 use self::poller::TaskPoller;

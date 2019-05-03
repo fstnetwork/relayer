@@ -21,7 +21,7 @@ use std::sync::Arc;
 use crate::traits;
 use crate::types::{GasEstimation, SignedRequest};
 
-use super::{Error, ErrorKind, InnerPool, PoolRequest, RequestSelector, VerifiedRequest};
+use super::{Error, InnerPool, PoolRequest, RequestSelector, VerifiedRequest};
 
 lazy_static! {
     static ref INTRINSIC_GAS_AMOUNT: U256 = U256::from(21000);
@@ -33,7 +33,7 @@ fn minus_intrinsic_gas_amount(origin_gas_amount: U256) -> U256 {
 
 pub trait Verifier {
     type Request: PoolRequest;
-    type Error: ::std::error::Error + Send + 'static;
+    type Error: Send + Sync + 'static;
 
     fn verify_request<S>(
         &self,
@@ -109,9 +109,9 @@ where
                         signed_request.hash(),
                         err
                     );
-                    Err(Error::from(
-                        ErrorKind::TokenTransferRequestGasEstimationFailed,
-                    ))
+                    Err(
+                        Error::TokenTransferRequestGasEstimationFailed,
+                    )
                 }
             }),
         )

@@ -37,7 +37,7 @@ use crate::types::{AccountState, BlockId, EthTransactionConfirmation};
 use crate::types::{EthRpcBytes, EthRpcCallRequest, EthRpcTransaction, EthRpcTransactionReceipt};
 use crate::utils::clean_0x;
 
-use super::error::{Error, ErrorKind};
+use super::error::Error;
 
 pub struct JsonRpcClient {
     host: Uri,
@@ -226,19 +226,17 @@ impl EthereumClient {
                         if let Some(gas_limit) = block["gasLimit"].as_str() {
                             match U256::from_str(clean_0x(&gas_limit)) {
                                 Ok(v) => Ok(v),
-                                Err(_) => Err(Error::from(ErrorKind::ParseHex)),
+                                Err(_) => Err(Error::ParseHex),
                             }
                         } else {
-                            Err(Error::from(ErrorKind::NoSuchField("gasLimit")))
+                            Err(Error::NoSuchField("gasLimit"))
                         }
                     } else {
                         // FIXME better error message
-                        Err(Error::from(ErrorKind::NoSuchField("block")))
+                        Err(Error::NoSuchField("block"))
                     }
                 }
-                JsonRpcOutput::Failure(JsonRpcFailure { error, .. }) => {
-                    Err(Error::from(ErrorKind::JsonRpc(error.clone())))
-                }
+                JsonRpcOutput::Failure(JsonRpcFailure { error, .. }) => Err(Error::JsonRpc(error)),
             })
     }
 
@@ -363,9 +361,7 @@ impl EthereumClient {
 pub fn extract_result(value: JsonRpcOutput) -> Result<JsonValue, Error> {
     match value {
         JsonRpcOutput::Success(JsonRpcSuccess { result, .. }) => Ok(result),
-        JsonRpcOutput::Failure(JsonRpcFailure { error, .. }) => {
-            Err(Error::from(ErrorKind::JsonRpc(error.clone())))
-        }
+        JsonRpcOutput::Failure(JsonRpcFailure { error, .. }) => Err(Error::JsonRpc(error)),
     }
 }
 
@@ -406,11 +402,11 @@ pub fn extract_nonce_and_balance(
         let result = match results.pop() {
             Some(Ok(value)) => value,
             Some(Err(e)) => return Err(e),
-            None => return Err(Error::from("result is empty")),
+            None => return Err(Error::from("result is empty".to_string())),
         };
 
         U256::from_str(clean_0x(&serde_json::from_value::<String>(result)?))
-            .map_err(|_| Error::from(ErrorKind::ParseHex))
+            .map_err(|_| Error::ParseHex)
     };
 
     let balance = hex_value(&mut results)?;
@@ -445,7 +441,7 @@ pub fn extract_transaction_confirmation(
 
         match U256::from_str(clean_0x(&serde_json::from_value::<String>(value)?)) {
             Ok(n) => n,
-            Err(_) => return Err(Error::from(ErrorKind::ParseHex)),
+            Err(_) => return Err(Error::ParseHex),
         }
     };
 
@@ -460,8 +456,7 @@ where
     T: FromStr,
 {
     extract_result(value).and_then(|value| {
-        T::from_str(clean_0x(&json::from_value::<String>(value)?))
-            .map_err(|_| Error::from(ErrorKind::ParseHex))
+        T::from_str(clean_0x(&json::from_value::<String>(value)?)).map_err(|_| Error::ParseHex)
     })
 }
 

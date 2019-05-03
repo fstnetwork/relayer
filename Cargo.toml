@@ -12,18 +12,19 @@ name = "fst-relayer"
 path = "src/main.rs"
 
 [dependencies]
+ethabi = { git = "https://github.com/AtkinsChang/ethabi.git", branch = "fix_dynamic_type" }
 ethcore = { git = "https://github.com/paritytech/parity-ethereum.git", tag = "v2.5.0", package = "common-types" }
 ethkey = { git = "https://github.com/paritytech/parity-ethereum.git", tag = "v2.5.0", package = "ethkey" }
 ethstore = { git = "https://github.com/paritytech/parity-ethereum.git", tag = "v2.5.0", package = "ethstore" }
+web3 = { git = "https://github.com/fstnetwork/rust-web3", branch = "develop" }
 
 byteorder = "1.2"
 bytes = "0.4"
 clap = "2.33"
 dirs = "1.0"
 env_logger = "0.6"
-error-chain = "0.12"
-ethabi = { git = "https://github.com/AtkinsChang/ethabi.git", branch = "fix_dynamic_type" }
 ethereum-types = "0.4"
+failure = "0.1.5"
 fdlimit = "0.1.1"
 fixed-hash = "0.2"
 futures = "0.1"

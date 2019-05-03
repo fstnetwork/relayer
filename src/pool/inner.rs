@@ -21,7 +21,7 @@ use std::sync::Arc;
 use crate::types::SignedRequest;
 
 use super::{
-    AddResult, Error, ErrorKind, PoolParams, PoolRequest, PoolRequestTag, Readiness, ReadyChecker,
+    AddResult, Error, PoolParams, PoolRequest, PoolRequestTag, Readiness, ReadyChecker,
     RequestQueue, RequestSelector, ScoredRequest, Status,
 };
 
@@ -69,10 +69,9 @@ where
     }
 
     pub fn import(&mut self, request: R) -> Result<Arc<SignedRequest>, Error> {
-        ensure!(
-            !self.by_hash.contains_key(&request.hash()),
-            ErrorKind::AlreadyImported(format!("{:?}", request.hash()))
-        );
+        if self.by_hash.contains_key(&request.hash()) {
+            return Err(Error::AlreadyImported(format!("{:?}", request.hash())));
+        }
 
         let (result, prev_state, current_state) = {
             let queue = self
@@ -96,20 +95,14 @@ where
                 self.finalize_insert(&new, Some(&old));
                 Ok(new.clone_signed())
             }
-            AddResult::TooCheap { new, old } => {
-                let error = ErrorKind::TooCheapToReplace(
-                    format!("{:x}", old.hash()),
-                    format!("{:x}", new.hash()),
-                );
-                bail!(error)
-            }
-            AddResult::TooCheapToEnter(new, score) => {
-                let error = ErrorKind::TooCheapToEnter(
-                    format!("{:x}", new.hash()),
-                    format!("{:#x}", score),
-                );
-                bail!(error)
-            }
+            AddResult::TooCheap { new, old } => Err(Error::TooCheapToReplace {
+                old_hash: format!("{:x}", old.hash()),
+                hash: format!("{:x}", new.hash()),
+            }),
+            AddResult::TooCheapToEnter(new, score) => Err(Error::TooCheapToEnter {
+                hash: format!("{:x}", new.hash()),
+                min_score: format!("{:#x}", score),
+            }),
         }
     }
 

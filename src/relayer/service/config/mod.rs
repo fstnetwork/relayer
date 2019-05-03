@@ -36,7 +36,7 @@ use super::{
 use super::rpc_apis;
 
 mod error;
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EthereumService {
@@ -170,7 +170,7 @@ impl Configuration {
             let password = Password::from(read_file(password_file)?.trim().to_owned());
             match crypto.secret(&password) {
                 Ok(secret) => secret,
-                Err(err) => return Err(Error::from(ErrorKind::EthStore(err))),
+                Err(err) => return Err(Error::EthStore(err)),
             }
         };
 
@@ -212,23 +212,19 @@ impl Configuration {
         let config = self.machine.clone();
 
         if config.interval_secs == 0 {
-            return Err(Error::from(ErrorKind::InvalidRelayInterval));
+            return Err(Error::InvalidRelayInterval);
         }
 
         let mut relayer_keypairs: Vec<KeyPair> = Vec::new();
         for (address, r) in config.relayers.into_iter() {
             let keyfile = match resolve_path(&r.keyfile) {
                 Some(path) => path,
-                None => return Err(Error::from(ErrorKind::ResolveFilePathFailed(r.keyfile))),
+                None => return Err(Error::ResolveFilePathFailed(r.keyfile)),
             };
 
             let password_file = match resolve_path(&r.password_file) {
                 Some(path) => path,
-                None => {
-                    return Err(Error::from(ErrorKind::ResolveFilePathFailed(
-                        r.password_file,
-                    )))
-                }
+                None => return Err(Error::ResolveFilePathFailed(r.password_file)),
             };
 
             match Self::recover_keypair(&keyfile, &password_file) {
@@ -241,12 +237,12 @@ impl Configuration {
                     relayer_keypairs.push(keypair);
                 }
                 Err(err) => {
-                    return Err(Error::from(ErrorKind::RecoverPrivateKeyFailed(
-                        format!("{:?}", err),
+                    return Err(Error::RecoverPrivateKeyFailed {
+                        error: format!("{:?}", err),
                         address,
-                        r.keyfile,
-                        r.password_file,
-                    )))
+                        keyfile: r.keyfile,
+                        password_file: r.password_file,
+                    })
                 }
             }
         }
@@ -443,28 +439,28 @@ pub fn load_config(file_path: &PathBuf) -> Result<Configuration, Error> {
     use std::fs::File;
     let mut file = match File::open(file_path) {
         Ok(file) => file,
-        Err(err) => {
-            return Err(Error::from(ErrorKind::OpenConfigurationFileFailed(
-                file_path.clone(),
-                err,
-            )));
+        Err(error) => {
+            return Err(Error::OpenConfigurationFileFailed {
+                file_path: file_path.clone(),
+                error,
+            });
         }
     };
 
     use std::io::Read;
     let mut file_content = String::new();
-    if let Err(err) = file.read_to_string(&mut file_content) {
-        return Err(Error::from(ErrorKind::ReadConfigurationContentFailed(
-            file_path.clone(),
-            err,
-        )));
+    if let Err(error) = file.read_to_string(&mut file_content) {
+        return Err(Error::ReadConfigurationContentFailed {
+            file_path: file_path.clone(),
+            error,
+        });
     }
 
-    toml::from_str::<Configuration>(&file_content).map_err(|err| {
-        Error::from(ErrorKind::DeserializeConfigurationFailed(
-            file_path.clone(),
-            err,
-        ))
+    toml::from_str::<Configuration>(&file_content).map_err(|error| {
+        Error::DeserializeConfigurationFailed {
+            file_path: file_path.clone(),
+            error,
+        }
     })
 }
 

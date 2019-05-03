@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use ethereum_types::{Address, U256};
-use futures::{Future, Stream};
+use futures::Future;
 
-pub trait PriceService: Stream + Sync + Send {
-    type PricerError: ::std::error::Error + Send + 'static;
+pub trait PriceService: Future + Sync + Send {
+    type PricerError: Sync + Send + 'static;
 
     fn gas_price(&self) -> Box<Future<Item = U256, Error = Self::PricerError> + Send> {
         Box::new(futures::future::ok(U256::zero()))

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use ethereum_types::{Address, U256};
-use futures::{Future, Stream};
+use futures::Future;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
@@ -33,14 +33,14 @@ pub struct PoolPendingSettings {
     pub relayer: Option<Address>,
 }
 
-pub trait PoolService: Sync + Send + Stream {
+pub trait PoolService: Sync + Send + Future {
     type SignedRequest;
     type Address;
     type Hash;
     type Filter: Clone;
     type PoolParams;
     type PoolStatus;
-    type PoolError: ::std::error::Error + Send + ToString + 'static;
+    type PoolError: std::fmt::Display + std::fmt::Debug + Sync + Send + 'static;
 
     fn import(
         &mut self,

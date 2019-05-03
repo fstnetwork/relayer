@@ -13,4 +13,10 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-error_chain!{}
+
+#[derive(Debug, Fail)]
+pub enum Error {
+    // TODO implement error enum and remove this.
+    #[fail(display = "unimplemented error")]
+    Unimplemented,
+}

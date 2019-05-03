@@ -28,7 +28,7 @@ use crate::traits;
 use crate::types::{DelegateMode, SignedRequest};
 
 use super::{
-    AddressFilter, Error, ErrorKind, InnerPool, PoolParams, PoolRequest, PoolRequestTag, Readiness,
+    AddressFilter, Error, InnerPool, PoolParams, PoolRequest, PoolRequestTag, Readiness,
     RequestSelector, Status, Verifier,
 };
 
@@ -150,9 +150,7 @@ where
             .lock()
             .is_allowed(&request.unverified().token())
         {
-            return Box::new(futures::future::err(Error::from(
-                ErrorKind::NotSupportedToken,
-            )));
+            return Box::new(futures::future::err(Error::from(Error::NotSupportedToken)));
         }
 
         let relayer_address = {
@@ -362,7 +360,7 @@ where
     fn token_status(&self, token_address: &Address) -> Result<Status, Error> {
         match self.token_filter.lock().is_allowed(&token_address) {
             true => Ok(self.inner.write().token_status(token_address)),
-            false => Err(Error::from(ErrorKind::NotSupportedToken)),
+            false => Err(Error::NotSupportedToken),
         }
     }
 
@@ -392,7 +390,7 @@ where
     }
 }
 
-impl<E, N, F, R, S, V> Stream for Service<E, N, F, R, S, V>
+impl<E, N, F, R, S, V> Future for Service<E, N, F, R, S, V>
 where
     E: traits::EthereumService,
     N: traits::NetworkService,
@@ -404,7 +402,7 @@ where
     type Item = ();
     type Error = Error;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         loop {
             match self.ticker.poll() {
                 Ok(Async::Ready(_)) => {

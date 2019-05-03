@@ -5,7 +5,7 @@ use std::time::Duration;
 use tokio::timer::Interval;
 
 use super::contract::Erc1376Contract;
-use super::error::{Error, ErrorKind};
+use super::error::Error;
 
 pub struct Service {
     ticker: Interval,
@@ -50,7 +50,7 @@ impl Service {
 
     pub fn set_interval(&mut self, interval: Duration) -> Result<(), Error> {
         if interval == Duration::from_nanos(0) {
-            return Err(Error::from(ErrorKind::InvalidInterval(interval)));
+            return Err(Error::InvalidInterval(interval));
         }
 
         self.ticker = Interval::new_interval(interval);

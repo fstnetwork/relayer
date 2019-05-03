@@ -16,7 +16,7 @@
 use ethabi::Token;
 use ethereum_types::U256;
 
-use super::error::{Error, ErrorKind};
+use super::error::Error;
 use super::ERC20_TOKEN_INTERFACE;
 
 pub struct Erc20AbiDecoder;
@@ -30,7 +30,7 @@ impl Erc20AbiDecoder {
         let mut vec = symbol_function.decode_output(data)?;
         match vec.pop() {
             Some(Token::String(symbol)) => Ok(symbol),
-            _ => Err(Error::from(ErrorKind::InvalidReturnValue)),
+            _ => Err(Error::InvalidReturnValue),
         }
     }
 
@@ -42,7 +42,7 @@ impl Erc20AbiDecoder {
         let mut vec = balance_of_function.decode_output(data)?;
         match vec.pop() {
             Some(Token::Uint(balance)) => Ok(balance),
-            _ => Err(Error::from(ErrorKind::InvalidReturnValue)),
+            _ => Err(Error::InvalidReturnValue),
         }
     }
 
@@ -54,7 +54,7 @@ impl Erc20AbiDecoder {
         let mut vec = total_supply_function.decode_output(data)?;
         match vec.pop() {
             Some(Token::Uint(total_supply)) => Ok(total_supply),
-            _ => Err(Error::from(ErrorKind::InvalidReturnValue)),
+            _ => Err(Error::InvalidReturnValue),
         }
     }
 }

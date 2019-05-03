@@ -19,4 +19,4 @@ mod error;
 pub use self::client::{
     extract_bytes, extract_hex_value, extract_result, extract_transaction, to_0xhex, EthereumClient,
 };
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;

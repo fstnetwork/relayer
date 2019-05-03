@@ -15,13 +15,13 @@
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 
 use ethereum_types::Address;
-use futures::{Future, Stream};
+use futures::Future;
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
-pub trait MachineService: Sync + Send + Stream {
-    type MachineError: ::std::error::Error + Send + 'static + ToString;
+pub trait MachineService: Future + Send {
+    type MachineError: std::fmt::Display + std::fmt::Debug + Sync + Send + 'static;
     type MachineParams;
     type MachineStatus;
     type SignedRequest;

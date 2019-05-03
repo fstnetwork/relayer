@@ -36,7 +36,7 @@ mod tests;
 
 pub use self::service::Service as PoolService;
 
-pub use self::error::{Error, ErrorKind};
+pub use self::error::Error;
 pub use self::filter::{
     AddressFilter, DummyAddressFilter, ListAddressFilter, ListAddressFilterMode,
 };

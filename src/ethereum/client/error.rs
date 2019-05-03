@@ -14,27 +14,64 @@
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 
-error_chain! {
-    foreign_links {
-        ContractAbi( crate::contract_abi::Error);
-        FromHex(rustc_hex::FromHexError);
-        Hyper(hyper::Error);
-        Json(serde_json::Error);
-        Io(::std::io::Error) #[cfg(unix)];
-    }
+use crate::contract_abi::Error as ContractAbiError;
 
-    errors {
-        NoSuchField(field_name: &'static str){
-            description("No such field")
-            display("No such field: {}", field_name)
-        }
-        ParseHex {
-            description("Parse Hex Error")
-            display("Parse Hex Error")
-        }
-        JsonRpc(t: jsonrpc_core::Error) {
-            description("JSON RPC Error")
-            display("JSON RPC Error: {:?}", t)
-        }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "IO error: {}", _0)]
+    Io(::std::io::Error),
+
+    #[fail(display = "From hex error: {:?}", _0)]
+    FromHex(rustc_hex::FromHexError),
+
+    #[fail(display = "Contract ABI error: {}", _0)]
+    ContractAbi(ContractAbiError),
+
+    #[fail(display = "Hyper error: {:?}", _0)]
+    Hyper(hyper::Error),
+
+    #[fail(display = "JSON error: {:?}", _0)]
+    Json(serde_json::Error),
+
+    #[fail(display = "No such field: {}", _0)]
+    NoSuchField(&'static str),
+
+    #[fail(display = "Parse hex error")]
+    ParseHex,
+
+    #[fail(display = "JSON-RPC error: {:?}", _0)]
+    JsonRpc(jsonrpc_core::Error),
+
+    #[fail(display = "Error: {:?}", _0)]
+    Other(String),
+}
+
+impl From<ContractAbiError> for Error {
+    fn from(error: ContractAbiError) -> Error {
+        Error::ContractAbi(error)
+    }
+}
+
+impl From<hyper::Error> for Error {
+    fn from(error: hyper::Error) -> Error {
+        Error::Hyper(error)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Error {
+        Error::Json(error)
+    }
+}
+
+impl From<jsonrpc_core::Error> for Error {
+    fn from(error: jsonrpc_core::Error) -> Error {
+        Error::JsonRpc(error)
+    }
+}
+
+impl From<String> for Error {
+    fn from(error: String) -> Error {
+        Error::Other(error)
     }
 }

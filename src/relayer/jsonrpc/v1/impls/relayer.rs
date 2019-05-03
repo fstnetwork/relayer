@@ -88,7 +88,7 @@ where
             Ok(interval) => Ok(interval.as_secs()),
             Err(err) => Err(Error {
                 code: ErrorCode::InvalidParams,
-                message: err.to_string(),
+                message: format!("{:?}", err),
                 data: None,
             }),
         }

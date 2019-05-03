@@ -19,6 +19,6 @@ mod token;
 
 use super::{signature, DelegateMode, EthRpcBytes, Request, RequestError, SignedRequest};
 
-pub use self::error::{Error as RelayerRpcError, ErrorKind as RelayerRpcErrorKind};
+pub use self::error::Error as RelayerRpcError;
 pub use self::request::Request as RelayerRpcRequest;
 pub use self::token::Token as RelayerRpcToken;

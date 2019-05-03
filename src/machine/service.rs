@@ -32,8 +32,7 @@ use crate::traits::{
 use crate::types::SignedRequest;
 
 use super::{
-    Error, ErrorKind, RelayerEvent, RelayerInfo, RelayerMachine, RelayerMode, RelayerParams,
-    RelayerState,
+    Error, RelayerEvent, RelayerInfo, RelayerMachine, RelayerMode, RelayerParams, RelayerState,
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -320,7 +319,7 @@ where
     fn set_interval(&mut self, interval: Duration) -> Result<Duration, Self::MachineError> {
         if interval == Duration::from_secs(0) {
             warn!(target: "relayer", "Relayer service: Invalid interval value: {:?}", interval);
-            return Err(Error::from(ErrorKind::InvalidIntervalValue(interval)));
+            return Err(Error::InvalidIntervalValue(interval));
         }
 
         info!(target: "relayer", "Relayer service: Set interval to {:?}", interval);
@@ -357,7 +356,7 @@ where
                     self.pool
                         .lock()
                         .import(signed_request)
-                        .map_err(|_| Error::from(ErrorKind::FailedToImportTokenTransferRequest)),
+                        .map_err(|_| Error::FailedToImportTokenTransferRequest),
                 )
             }
         }
@@ -508,7 +507,7 @@ where
     }
 }
 
-impl<E, M, P, G, C> Stream for Service<E, M, P, G, C>
+impl<E, M, P, G, C> Future for Service<E, M, P, G, C>
 where
     E: EthereumService<Error = EthereumServiceError>,
     M: EthereumMonitor<MonitorError = EthereumMonitorError>,
@@ -519,23 +518,21 @@ where
     type Item = ();
     type Error = Error;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         loop {
+            if !self.running {
+                return Ok(Async::Ready(()));
+            }
+
             if let Err(err) = self.poll_relayer() {
                 return Err(err);
             }
 
             self.remove_retired_relayers();
 
-            if !self.running {
-                return Ok(Async::NotReady);
-            }
-
             if let Err(err) = self.poll_ticker() {
                 return Err(err);
             }
-
-            return Ok(Async::NotReady);
         }
     }
 }

@@ -15,16 +15,52 @@
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use super::config;
 
-error_chain! {
-    foreign_links {
-        Io(std::io::Error);
-        Config(config::Error);
-        Json(serde_json::Error);
-        EthKey(ethkey::Error);
-        EthereumService(crate::ethereum::service::Error);
+use crate::ethereum::service::Error as EthereumServiceError;
+
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "Io error: {}", _0)]
+    Io(std::io::Error),
+
+    #[fail(display = "JSON error: {}", _0)]
+    Json(serde_json::Error),
+
+    #[fail(display = "Configuration error: {}", _0)]
+    Config(config::Error),
+
+    #[fail(display = "EthKey error: {}", _0)]
+    EthKey(ethkey::Error),
+
+    #[fail(display = "Ethereum service error: {}", _0)]
+    EthereumService(EthereumServiceError),
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Error {
+        Error::Io(error)
     }
+}
 
-    errors {
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Error {
+        Error::Json(error)
+    }
+}
 
+impl From<config::Error> for Error {
+    fn from(error: config::Error) -> Error {
+        Error::Config(error)
+    }
+}
+
+impl From<ethkey::Error> for Error {
+    fn from(error: ethkey::Error) -> Error {
+        Error::EthKey(error)
+    }
+}
+
+impl From<EthereumServiceError> for Error {
+    fn from(error: EthereumServiceError) -> Error {
+        Error::EthereumService(error)
     }
 }

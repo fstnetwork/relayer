@@ -13,10 +13,10 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-use futures::Stream;
+use futures::Future;
 
-pub trait NetworkService: Send + Sync + Stream {
-    type NetworkError: ::std::error::Error + Send + 'static;
+pub trait NetworkService: Send + Sync + Future {
+    type NetworkError: Sync + Send + 'static;
 
     fn peer_count(&self) -> usize;
 

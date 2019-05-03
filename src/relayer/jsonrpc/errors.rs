@@ -31,13 +31,3 @@ pub fn internal<E: ::std::fmt::Debug>(e: E) -> jsonrpc_core::Error {
         data: Some(format!("{:?}", e).into()),
     }
 }
-
-error_chain! {
-    foreign_links {
-
-    }
-
-    errors {
-
-    }
-}

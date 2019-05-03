@@ -18,7 +18,7 @@ use ethereum_types::{Address, H256, U256};
 use super::DelegateMode;
 use super::EthRpcBytes;
 
-use super::error::{Error, ErrorKind};
+use super::error::Error;
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Request {
@@ -72,9 +72,7 @@ impl Request {
         let delegate_mode = if DelegateMode::is_valid_numeric(self.delegate_mode.into()) {
             DelegateMode::from(self.delegate_mode)
         } else {
-            return Err(Error::from(ErrorKind::InvalidDelegateMode(
-                self.delegate_mode,
-            )));
+            return Err(Error::InvalidDelegateMode(self.delegate_mode));
         };
 
         let sig = ethkey::Signature::from_rsv(

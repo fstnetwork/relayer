@@ -78,7 +78,7 @@ pub trait EthereumService:
     + TransactionBroadcaster<<Self as EthereumService>::Error>
     + TransactionFetcher<<Self as EthereumService>::Error>
 {
-    type Error: ::std::error::Error + Send + 'static;
+    type Error: std::fmt::Display + std::fmt::Debug + Sync + Send + 'static;
 
     /// Adds new Ethereum endpoint
     fn add_endpoint(&mut self, endpoint: String) -> bool;
@@ -113,7 +113,7 @@ pub enum EthereumMonitorResponse {
 }
 
 pub trait EthereumMonitor: Send + Sync + Stream {
-    type MonitorError: ::std::error::Error + Send + 'static;
+    type MonitorError: Sync + Send + 'static;
     type WatcherId: Send + Sync + Copy + Eq + PartialEq;
 
     fn set_interval(&mut self, interval: Duration);

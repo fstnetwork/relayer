@@ -13,27 +13,41 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-use serde_json;
-use std::io::Error as IoError;
 
 use super::ethereum_client::Error as EthereumClientError;
 
-error_chain! {
-    foreign_links {
-        Io(IoError) #[doc = "IO error."];
-        Json(serde_json::Error);
-        EthereumClient(EthereumClientError) #[doc = "Ethereum client."];
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "IO error: {}", _0)]
+    Io(::std::io::Error),
+
+    #[fail(display = "JSON error: {}", _0)]
+    Json(serde_json::Error),
+
+    #[fail(display = "Ethereum client error: {}", _0)]
+    EthereumClient(EthereumClientError),
+
+    #[fail(display = "Ethereum client group is empty")]
+    EthereumClientGroupEmpty,
+
+    #[fail(display = "Parse hex error")]
+    ParseHex,
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Error {
+        Error::Io(error)
     }
+}
 
-    errors {
-        ParseHex {
-            description("Parse Hex Error")
-            display("Parse Hex Error")
-        }
+impl From<EthereumClientError> for Error {
+    fn from(error: EthereumClientError) -> Error {
+        Error::EthereumClient(error)
+    }
+}
 
-        EthereumClientGroupEmpty {
-            description("Ethereum client group is empty")
-            display("Ethereum client group is empty")
-        }
+impl From<serde_json::Error> for Error {
+    fn from(error: serde_json::Error) -> Error {
+        Error::Json(error)
     }
 }

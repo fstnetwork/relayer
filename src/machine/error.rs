@@ -21,34 +21,68 @@ use crate::ethereum::{
 };
 use crate::pricer::Error as PricerError;
 
-error_chain! {
-    foreign_links {
-        TimerError(tokio_timer::Error);
-        Collation(CollationError);
-        EthereumService(EthereumServiceError);
-        EthereumMonitor(EthereumMonitorError);
-        PriceService(PricerError);
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "Collation error: {}", _0)]
+    Collation(CollationError),
+
+    #[fail(display = "Tokio Timer error: {}", _0)]
+    Timer(tokio_timer::Error),
+
+    #[fail(display = "Ethereum Service error: {}", _0)]
+    EthereumService(EthereumServiceError),
+
+    #[fail(display = "Ethereum Monitor error: {}", _0)]
+    EthereumMonitor(EthereumMonitorError),
+
+    #[fail(display = "Price Service error: {}", _0)]
+    PriceService(PricerError),
+
+    #[fail(
+        display = "Invalid state transfer, current state: {:?}, expected state: {:?}",
+        current_state, expected_state
+    )]
+    InvalidStateTransfer {
+        current_state: String,
+        expected_state: String,
+    },
+
+    #[fail(display = "Invalid interval value: {:?}", _0)]
+    InvalidIntervalValue(Duration),
+
+    #[fail(display = "Empty token transfer request transaction")]
+    EmptyTokenTransferRequestTransaction,
+
+    #[fail(display = "Failed to import token transfer request")]
+    FailedToImportTokenTransferRequest,
+}
+
+impl From<CollationError> for Error {
+    fn from(error: CollationError) -> Error {
+        Error::Collation(error)
     }
+}
 
-    errors {
-        InvalidStateTransfer(current_state: String, expected_state: String) {
-            description("Invalid state transfer")
-            display("Invalid state transfer, current state: {:?}, expected state: {:?}", current_state, expected_state)
-        }
+impl From<tokio_timer::Error> for Error {
+    fn from(error: tokio_timer::Error) -> Error {
+        Error::Timer(error)
+    }
+}
 
-        InvalidIntervalValue(interval: Duration) {
-            description("Invalid interval value")
-            display("Invalid interval value: {:?}", interval)
-        }
+impl From<PricerError> for Error {
+    fn from(error: PricerError) -> Error {
+        Error::PriceService(error)
+    }
+}
 
-        EmptyTokenTransferRequestTransaction {
-            description("Empty token transfer request transaction")
-            display("Empty token transfer request transaction")
-        }
+impl From<EthereumServiceError> for Error {
+    fn from(error: EthereumServiceError) -> Error {
+        Error::EthereumService(error)
+    }
+}
 
-        FailedToImportTokenTransferRequest {
-            description("Failed to import token transfer request")
-            display("Failed to import token transfer request")
-        }
+impl From<EthereumMonitorError> for Error {
+    fn from(error: EthereumMonitorError) -> Error {
+        Error::EthereumMonitor(error)
     }
 }

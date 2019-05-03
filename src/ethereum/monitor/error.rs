@@ -15,15 +15,17 @@
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
 use super::ethereum_service::Error as EthereumServiceError;
 
-error_chain!{
-    foreign_links {
-        EthereumService(EthereumServiceError);
-    }
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "Ethereum service error: {}", _0)]
+    EthereumService(EthereumServiceError),
 
-    errors {
-        InvalidWatcherId {
-            description("Invalid watcher ID")
-            display("Invalid watcher ID")
-        }
+    #[fail(display = "Invalid watcher ID")]
+    InvalidWatcherId,
+}
+
+impl From<EthereumServiceError> for Error {
+    fn from(error: EthereumServiceError) -> Error {
+        Error::EthereumService(error)
     }
 }

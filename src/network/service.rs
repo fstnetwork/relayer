@@ -13,7 +13,8 @@
 
 // You should have received a copy of the GNU General Public License
 // along with FST Relayer. If not, see <http://www.gnu.org/licenses/>.
-use futures::{Async, Poll, Stream};
+
+use futures::{Async, Future, Poll, Stream};
 use std::time::Duration;
 use tokio_timer::Interval;
 
@@ -52,13 +53,13 @@ impl traits::NetworkService for Service {
     }
 }
 
-impl Stream for Service {
+impl Future for Service {
     type Item = ();
     type Error = Error;
 
-    fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
         loop {
-            match self.ticker.poll().unwrap() {
+            match self.ticker.poll().expect("ticker always exist; qed") {
                 Async::Ready(_) => {
                     // trace!(target: "network", "network timeouts");
                     // add routine works here
