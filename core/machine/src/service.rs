@@ -17,7 +17,7 @@ use ethkey::KeyPair;
 use futures::{Async, Future, Poll, Stream};
 use parking_lot::Mutex;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::timer::Interval;
 
 use ethereum_types::{Address, H256};
@@ -38,6 +38,9 @@ use super::{
 pub struct Status {
     #[serde(rename = "isWorking")]
     is_working: bool,
+
+    #[serde(rename = "lastIdleTime")]
+    last_idle_time: u64,
 
     #[serde(rename = "relayerCount")]
     relayer_count: usize,
@@ -67,6 +70,7 @@ where
     C: RequestConverter,
 {
     running: bool,
+    last_idle: SystemTime,
 
     ethereum: Arc<Mutex<E>>,
     ethereum_monitor: Arc<Mutex<M>>,
@@ -145,6 +149,7 @@ where
 
         Service {
             running: false,
+            last_idle: UNIX_EPOCH,
             ethereum,
             ethereum_monitor,
             pool,
@@ -183,10 +188,13 @@ where
                     if 0 == selected {
                         info!(target: "relayer",
                             "Relayer service: no availible relayer!");
+                    } else {
+                        self.last_idle = SystemTime::now();
                     }
                 } else {
                     trace!(target: "relayer",
                         "Relayer service: no ready in request pool, skip!");
+                    self.last_idle = SystemTime::now();
                 }
             }
             Err(err) => return Err(Error::from(err)),
@@ -221,6 +229,13 @@ where
         }
 
         Ok(Async::NotReady)
+    }
+
+    fn last_idle_time(&self) -> u128 {
+        self.last_idle
+            .duration_since(UNIX_EPOCH)
+            .expect("time is before unix epoch")
+            .as_millis()
     }
 }
 
@@ -397,6 +412,7 @@ where
         relayer_infos.sort_unstable();
         Status {
             is_working: self.is_working(),
+            last_idle_time: self.last_idle_time() as u64,
             relayer_infos,
             relayer_count: traits::MachineService::relayer_count(self),
         }
